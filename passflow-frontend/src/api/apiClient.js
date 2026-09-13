@@ -10,19 +10,20 @@ const RAW_API_URL = import.meta.env.VITE_API_URL || '';
 // we use relative path so Vite's proxy forwards requests without CORS issues.
 export function getApiBaseUrl() {
   if (typeof window !== 'undefined') {
-    // If running in browser and targeting local backend or Vite dev server (any port like 5173, 5174, etc.),
-    // return empty string so relative requests go through Vite's dev proxy without CORS issues.
     const isLocalhost =
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1';
 
-    const isLocalBackend =
-      RAW_API_URL.includes('127.0.0.1:8000') ||
-      RAW_API_URL.includes('localhost:8000') ||
-      !RAW_API_URL;
+    // If running in local browser, route through Vite proxy if local backend
+    if (isLocalhost) {
+      const isLocalBackend =
+        RAW_API_URL.includes('127.0.0.1:8000') ||
+        RAW_API_URL.includes('localhost:8000') ||
+        !RAW_API_URL;
 
-    if (isLocalhost && isLocalBackend) {
-      return ''; // Route through Vite dev proxy on any port
+      if (isLocalBackend) {
+        return '';
+      }
     }
   }
 
@@ -110,8 +111,9 @@ export async function request(endpoint, options = {}) {
       throw error;
     }
     // Network or parse error
+    const targetInfo = url ? ` (Target: ${url})` : '';
     throw new ApiError(
-      error.message || 'Network connection error. Is the backend server running?',
+      `Network connection failed${targetInfo}. Please check that the backend server is running and VITE_API_URL is configured correctly.`,
       0,
       null
     );
