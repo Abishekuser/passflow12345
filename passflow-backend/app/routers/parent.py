@@ -5,11 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from jose import jwt
 from dotenv import load_dotenv
-from zoneinfo import ZoneInfo
 
 from ..database import get_db
-from ..models import Outpass, QRPass
-from ..qr import generate_qr_token, generate_qr_image
+from ..models import Outpass
 
 
 load_dotenv()
@@ -45,6 +43,7 @@ def approve_outpass(
     db: Session = Depends(get_db)
 ):
 
+    # Decode parent approval token
     try:
         payload = jwt.decode(
             token,
@@ -58,6 +57,7 @@ def approve_outpass(
             detail="Invalid or expired token"
         )
 
+    # Check token purpose
     if payload.get("purpose") != "parent_approval":
         raise HTTPException(
             status_code=401,
@@ -66,6 +66,7 @@ def approve_outpass(
 
     outpass_id = payload.get("outpass_id")
 
+    # Find outpass
     outpass = db.query(Outpass).filter(
         Outpass.id == outpass_id
     ).first()
@@ -76,39 +77,25 @@ def approve_outpass(
             detail="Outpass not found"
         )
 
+    # Parent can approve only pending requests
     if outpass.status != "PENDING":
         raise HTTPException(
             status_code=400,
             detail="Outpass is not pending"
         )
 
-    # Approve the outpass
-    outpass.status = "APPROVED"
+    # --------------------------------
+    # Parent approval
+    # --------------------------------
 
-    # Create QR token
-    qr_token = generate_qr_token()
-
-    qr_pass = QRPass(
-        outpass_id=outpass.id,
-        student_id=outpass.student_id,
-        token=qr_token,
-        expires_at=datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None) + timedelta(hours=24)
-    )
-
-    db.add(qr_pass)
+    outpass.status = "PARENT_APPROVED"
 
     db.commit()
-    db.refresh(qr_pass)
-
-    # Generate QR image
-    image = generate_qr_image(qr_token)
-    image.save(f"qr_{outpass.id}.png")
 
     return {
-        "message": "Outpass approved and QR generated",
+        "message": "Parent approved the outpass. Waiting for warden approval.",
         "outpass_id": outpass.id,
-        "status": outpass.status,
-        "qr_token": qr_token
+        "status": outpass.status
     }
 
 
@@ -118,6 +105,7 @@ def reject_outpass(
     db: Session = Depends(get_db)
 ):
 
+    # Decode parent approval token
     try:
         payload = jwt.decode(
             token,
@@ -131,6 +119,7 @@ def reject_outpass(
             detail="Invalid or expired token"
         )
 
+    # Check token purpose
     if payload.get("purpose") != "parent_approval":
         raise HTTPException(
             status_code=401,
@@ -139,6 +128,7 @@ def reject_outpass(
 
     outpass_id = payload.get("outpass_id")
 
+    # Find outpass
     outpass = db.query(Outpass).filter(
         Outpass.id == outpass_id
     ).first()
@@ -149,19 +139,23 @@ def reject_outpass(
             detail="Outpass not found"
         )
 
+    # Parent can reject only pending requests
     if outpass.status != "PENDING":
         raise HTTPException(
             status_code=400,
             detail="Outpass is not pending"
         )
 
-    # Reject the outpass
+    # --------------------------------
+    # Parent rejection
+    # --------------------------------
+
     outpass.status = "REJECTED"
 
     db.commit()
 
     return {
-        "message": "Outpass rejected",
+        "message": "Outpass rejected by parent.",
         "outpass_id": outpass.id,
         "status": outpass.status
     }

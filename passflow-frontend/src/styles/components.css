@@ -268,6 +268,18 @@
   cursor: not-allowed;
 }
 
+.form-checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.form-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
 .form-error {
   font-size: 0.8rem;
   color: var(--status-late-text);

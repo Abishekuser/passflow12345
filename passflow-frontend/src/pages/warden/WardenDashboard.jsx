@@ -23,7 +23,7 @@ import {
 
 export function WardenDashboard() {
   const { user } = useAuth();
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [students, setStudents] = useState([]);
   const [pendingOutpasses, setPendingOutpasses] = useState([]);
@@ -33,6 +33,9 @@ export function WardenDashboard() {
   const [activeTab, setActiveTab] = useState('STUDENTS'); // 'STUDENTS' | 'PENDING' | 'LATE'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedYear, setSelectedYear] = useState('ALL');
+  const [selectedOutpassIds, setSelectedOutpassIds] = useState([]);
+  const [actionLoading, setActionLoading] = useState(null);
 
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -41,22 +44,67 @@ export function WardenDashboard() {
     try {
       const [studentsData, pendingData] = await Promise.all([
         wardenApi.getStudents(),
-        wardenApi.getPendingOutpasses(),
+        wardenApi.getPendingOutpasses(selectedYear),
       ]);
 
       setStudents(Array.isArray(studentsData) ? studentsData : []);
       setPendingOutpasses(Array.isArray(pendingData) ? pendingData : []);
+      setSelectedOutpassIds([]);
     } catch (err) {
       showError(err.message || 'Failed to load warden hostel data.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, [selectedYear, showError]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const toggleOutpassSelection = (outpassId) => {
+    setSelectedOutpassIds((current) =>
+      current.includes(outpassId)
+        ? current.filter((id) => id !== outpassId)
+        : [...current, outpassId]
+    );
+  };
+
+  const allPendingSelected = pendingOutpasses.length > 0 &&
+    pendingOutpasses.every((pass) => selectedOutpassIds.includes(pass.outpass_id));
+
+  const toggleSelectAll = () => {
+    setSelectedOutpassIds(allPendingSelected ? [] : pendingOutpasses.map((pass) => pass.outpass_id));
+  };
+
+  const handleApproveSelected = async () => {
+    if (selectedOutpassIds.length === 0) return;
+    setActionLoading('bulk');
+    try {
+      const response = await wardenApi.approveSelected(selectedOutpassIds);
+      showSuccess(response.message || `${selectedOutpassIds.length} outpass${selectedOutpassIds.length === 1 ? '' : 'es'} approved successfully.`);
+      await fetchData(true);
+    } catch (err) {
+      showError(err.message || 'Failed to approve selected outpasses.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleIndividualAction = async (outpassId, action) => {
+    setActionLoading(outpassId);
+    try {
+      const response = action === 'approve'
+        ? await wardenApi.approveOutpass(outpassId)
+        : await wardenApi.rejectOutpass(outpassId);
+      showSuccess(response.message || `Outpass ${action === 'approve' ? 'approved' : 'rejected'} successfully.`);
+      await fetchData(true);
+    } catch (err) {
+      showError(err.message || `Failed to ${action} outpass.`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   // Derived statistics
   const totalStudents = students.length;
@@ -250,8 +298,30 @@ export function WardenDashboard() {
             <div>
               <h2 className="card-title">Pending Outpass Queue</h2>
               <p className="card-subtitle">
-                Requests currently awaiting parent authorization via Telegram
+                Requests approved by parents and awaiting warden approval
               </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                className="form-select"
+                value={selectedYear}
+                onChange={(event) => setSelectedYear(event.target.value)}
+                style={{ width: '140px', padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
+                aria-label="Filter by year"
+              >
+                <option value="ALL">All Years</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+              </select>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleApproveSelected}
+                disabled={selectedOutpassIds.length === 0 || actionLoading !== null}
+              >
+                <CheckCircle2 size={14} /> Approve Selected ({selectedOutpassIds.length})
+              </button>
             </div>
           </div>
 
@@ -266,22 +336,45 @@ export function WardenDashboard() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        className="form-checkbox"
+                        checked={allPendingSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all pending outpasses"
+                      />
+                    </th>
                     <th>Outpass ID</th>
                     <th>Student</th>
                     <th>Roll No.</th>
+                    <th>Department</th>
+                    <th>Year</th>
                     <th>Room</th>
                     <th>Destination</th>
                     <th>Date</th>
                     <th>Timings</th>
                     <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingOutpasses.map((p) => (
                     <tr key={p.outpass_id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="form-checkbox"
+                          checked={selectedOutpassIds.includes(p.outpass_id)}
+                          onChange={() => toggleOutpassSelection(p.outpass_id)}
+                          aria-label={`Select outpass ${p.outpass_id}`}
+                        />
+                      </td>
                       <td className="font-mono text-xs text-muted">#{p.outpass_id}</td>
                       <td className="font-bold text-primary">{p.name}</td>
                       <td className="font-mono text-xs">{p.roll_number}</td>
+                      <td>{p.department}</td>
+                      <td>{p.year}</td>
                       <td>{p.room_number}</td>
                       <td className="font-semibold">{p.destination}</td>
                       <td>{p.date}</td>
@@ -292,6 +385,24 @@ export function WardenDashboard() {
                       </td>
                       <td>
                         <StatusBadge status={p.status} size="sm" />
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleIndividualAction(p.outpass_id, 'approve')}
+                            disabled={actionLoading !== null}
+                          >
+                            <CheckCircle2 size={13} /> Approve
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleIndividualAction(p.outpass_id, 'reject')}
+                            disabled={actionLoading !== null}
+                          >
+                            <AlertTriangle size={13} /> Reject
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

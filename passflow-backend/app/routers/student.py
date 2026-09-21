@@ -49,6 +49,7 @@ def create_outpass(
         Outpass.student_id == student.id,
         Outpass.status.in_([
             "PENDING",
+            "PARENT_APPROVED",
             "APPROVED",
             "OUT"
         ])

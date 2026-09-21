@@ -93,7 +93,7 @@ export function MyOutpasses() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* Status Tabs */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {['ALL', 'PENDING', 'APPROVED', 'OUT', 'RETURNED', 'REJECTED'].map((st) => (
+            {['ALL', 'PENDING', 'PARENT_APPROVED', 'APPROVED', 'OUT', 'RETURNED', 'REJECTED'].map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
@@ -201,7 +201,7 @@ export function MyOutpasses() {
                       <StatusBadge status={pass.status} size="sm" />
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {pass.qr_token ? (
+                      {pass.qr_token && ['APPROVED', 'OUT'].includes(pass.status?.toUpperCase()) ? (
                         <button
                           onClick={() => setSelectedQRPass(pass)}
                           className="btn btn-success btn-sm"

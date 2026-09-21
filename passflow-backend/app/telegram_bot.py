@@ -2,7 +2,6 @@ import os
 import requests
 
 from datetime import datetime, timedelta
-
 from dotenv import load_dotenv
 from jose import jwt
 
@@ -13,6 +12,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes
 )
+from telegram.error import BadRequest
 
 
 load_dotenv()
@@ -68,8 +68,26 @@ async def handle_button(
 
     query = update.callback_query
 
-    await query.answer()
+    try:
+        await query.answer()
+    except BadRequest:
+        pass
 
+    async def edit_message(text):
+
+        try:
+            await query.edit_message_text(text)
+
+        except BadRequest as error:
+
+            if "message is not modified" not in str(error).lower():
+
+                print(
+                    "Telegram message update error:",
+                    str(error)
+                )
+
+    # Read button action
     action, outpass_id = query.data.split(":", 1)
 
     print(
@@ -77,13 +95,14 @@ async def handle_button(
         f"for outpass {outpass_id}"
     )
 
+    # Validate outpass ID
     try:
 
         outpass_id = int(outpass_id)
 
     except ValueError:
 
-        await query.edit_message_text(
+        await edit_message(
             "❌ Invalid outpass request."
         )
 
@@ -94,7 +113,7 @@ async def handle_button(
         outpass_id
     )
 
-    # Select existing backend endpoint
+    # Select backend endpoint
     if action == "approve":
 
         endpoint = (
@@ -111,44 +130,56 @@ async def handle_button(
 
     else:
 
-        await query.edit_message_text(
+        await edit_message(
             "❌ Invalid action."
         )
 
         return
 
+    # Call backend
     try:
 
         response = requests.post(
             endpoint,
-            timeout=15
+            timeout=60
         )
 
         if response.status_code == 200:
 
             data = response.json()
 
+            # --------------------------------
+            # PARENT APPROVED
+            # --------------------------------
+
             if action == "approve":
 
-                await query.edit_message_text(
-                    "✅ OUTPASS APPROVED\n\n"
-                    "The student's QR pass has been generated."
+                await edit_message(
+                    "✅ PARENT APPROVED\n\n"
+                    "The outpass is now waiting for "
+                    "warden approval.\n\n"
+                    "The QR pass will be generated "
+                    "after the warden approves it."
                 )
 
                 print(
-                    "Outpass approved:",
+                    "Parent approved outpass:",
                     data
                 )
 
+            # --------------------------------
+            # PARENT REJECTED
+            # --------------------------------
+
             else:
 
-                await query.edit_message_text(
+                await edit_message(
                     "❌ OUTPASS REJECTED\n\n"
                     "The outpass request has been rejected."
                 )
 
                 print(
-                    "Outpass rejected:",
+                    "Parent rejected outpass:",
                     data
                 )
 
@@ -167,7 +198,7 @@ async def handle_button(
 
                 detail = response.text
 
-            await query.edit_message_text(
+            await edit_message(
                 f"⚠️ Request failed:\n{detail}"
             )
 
@@ -184,7 +215,7 @@ async def handle_button(
             str(e)
         )
 
-        await query.edit_message_text(
+        await edit_message(
             "⚠️ Could not connect to PassFlow server."
         )
 
@@ -195,27 +226,34 @@ async def handle_button(
             str(e)
         )
 
-        await query.edit_message_text(
-            "⚠️ Something went wrong while processing the request."
+        await edit_message(
+            "⚠️ Something went wrong while processing "
+            "the request."
         )
 
 
+# Create Telegram application
 app = Application.builder().token(TOKEN).build()
 
 
+# /start
 app.add_handler(
     CommandHandler("start", start)
 )
 
 
+# Approve / Reject buttons
 app.add_handler(
     CallbackQueryHandler(handle_button)
 )
 
 
-print("PassFlow Telegram Bot is running...")
+print(
+    "PassFlow Telegram Bot is running..."
+)
 
 
+# Start bot
 app.run_polling(
     drop_pending_updates=True
 )

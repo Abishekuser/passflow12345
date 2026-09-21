@@ -14,6 +14,11 @@ export function StatusBadge({ status, size = 'normal', showIcon = true }) {
       Icon = Clock;
       label = 'Pending Parent Approval';
       break;
+    case 'PARENT_APPROVED':
+      badgeClass = 'badge-pending';
+      Icon = Clock;
+      label = 'Parent Approved - Waiting for Warden Approval';
+      break;
     case 'APPROVED':
       badgeClass = 'badge-approved';
       Icon = CheckCircle2;

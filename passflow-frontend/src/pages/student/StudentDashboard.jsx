@@ -53,14 +53,14 @@ export function StudentDashboard() {
     fetchOutpasses();
   }, [fetchOutpasses]);
 
-  // Identify active outpass (PENDING, APPROVED, OUT)
+  // Identify active outpass (PENDING, PARENT_APPROVED, APPROVED, OUT)
   const activePass = outpasses.find((p) =>
-    ['PENDING', 'APPROVED', 'OUT'].includes(p.status?.toUpperCase())
+    ['PENDING', 'PARENT_APPROVED', 'APPROVED', 'OUT'].includes(p.status?.toUpperCase())
   );
 
   // Statistics calculation from real backend data
   const totalCount = outpasses.length;
-  const pendingCount = outpasses.filter((p) => p.status === 'PENDING').length;
+  const pendingCount = outpasses.filter((p) => ['PENDING', 'PARENT_APPROVED'].includes(p.status)).length;
   const approvedCount = outpasses.filter((p) => p.status === 'APPROVED' || p.status === 'OUT').length;
   const returnedCount = outpasses.filter((p) => p.status === 'RETURNED').length;
 
@@ -130,6 +130,14 @@ export function StudentDashboard() {
                 </div>
               )}
 
+              {activePass.status === 'PARENT_APPROVED' && (
+                <div className="alert alert-warning mt-4 mb-0" style={{ fontSize: '0.85rem' }}>
+                  <div>
+                    <strong>Parent Approved - Waiting for Warden Approval:</strong> Your parent approved this outpass. The QR pass will be available after the warden approves it.
+                  </div>
+                </div>
+              )}
+
               {activePass.status === 'APPROVED' && (
                 <div className="alert alert-success mt-4 mb-0" style={{ fontSize: '0.85rem' }}>
                   <div>
@@ -149,7 +157,7 @@ export function StudentDashboard() {
             </div>
 
             <div className="flex flex-col items-end justify-center">
-              {activePass.qr_token ? (
+              {activePass.qr_token && ['APPROVED', 'OUT'].includes(activePass.status?.toUpperCase()) ? (
                 <button
                   onClick={() => setSelectedQRPass(activePass)}
                   className="btn btn-success btn-lg"
@@ -170,7 +178,7 @@ export function StudentDashboard() {
                 >
                   <Clock size={32} style={{ color: 'var(--status-pending-text)', margin: '0 auto 0.5rem' }} />
                   <div className="text-xs font-semibold text-secondary">
-                    QR Pass unlocks automatically upon Telegram approval
+                    QR Pass unlocks after warden approval
                   </div>
                 </div>
               )}
@@ -286,7 +294,7 @@ export function StudentDashboard() {
                       <StatusBadge status={pass.status} size="sm" />
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {pass.qr_token ? (
+                      {pass.qr_token && ['APPROVED', 'OUT'].includes(pass.status?.toUpperCase()) ? (
                         <button
                           onClick={() => setSelectedQRPass(pass)}
                           className="btn btn-success btn-sm"
