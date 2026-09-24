@@ -11,7 +11,7 @@ from ..database import get_db
 from ..models import Student, Outpass, User, QRPass
 from ..schemas import OutpassRequest
 from ..auth import get_current_user
-from ..services.telegram import send_outpass_request
+from ..services.email import send_outpass_request
 
 
 load_dotenv()
@@ -42,6 +42,13 @@ def create_outpass(
         raise HTTPException(
             status_code=404,
             detail="Student profile not found"
+        )
+
+    # Check parent email
+    if not student.parent_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Parent email is not registered"
         )
 
     # Check for an active outpass
@@ -102,39 +109,42 @@ def create_outpass(
         algorithm=ALGORITHM
     )
 
-    # Send Telegram notification
+    # Send email to the registered parent email
     try:
 
-        print("Sending Telegram outpass request...")
+        print(
+            "Sending email to:",
+            student.parent_email
+        )
 
-        telegram_message_id = send_outpass_request(
-            student,
-            outpass
+        send_outpass_request(
+            parent_email=student.parent_email,
+            student=student,
+            outpass=outpass,
+            approval_token=parent_token
         )
 
         print(
-            "Telegram message sent. Message ID:",
-            telegram_message_id
+            "Parent approval email sent successfully."
         )
 
     except Exception as e:
 
         print(
-            "Telegram notification failed:",
+            "Email notification failed:",
             str(e)
         )
 
         raise HTTPException(
             status_code=500,
-            detail=f"Telegram notification failed: {str(e)}"
+            detail=f"Email notification failed: {str(e)}"
         )
 
     return {
         "message": "Outpass request submitted",
         "outpass_id": outpass.id,
         "status": outpass.status,
-        "parent_token": parent_token,
-        "telegram_message_id": telegram_message_id
+        "parent_email": student.parent_email
     }
 
 

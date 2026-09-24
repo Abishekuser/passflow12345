@@ -56,6 +56,7 @@ async def signup(
 
     parent_name: str = Form(...),
     parent_phone: str = Form(...),
+    parent_email: str = Form(...),
     parent_language: str = Form(...),
 
     photo: UploadFile = File(...),
@@ -84,6 +85,14 @@ async def signup(
         raise HTTPException(
             status_code=400,
             detail="Roll number already exists"
+        )
+
+
+    # Check parent email
+    if "@" not in parent_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid parent email"
         )
 
 
@@ -157,6 +166,7 @@ async def signup(
 
         parent_name=parent_name,
         parent_phone=parent_phone,
+        parent_email=parent_email,
         parent_language=parent_language
     )
 

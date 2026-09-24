@@ -35,6 +35,7 @@ class Student(Base):
 
     parent_name = Column(String, nullable=False)
     parent_phone = Column(String, nullable=False)
+    parent_email = Column(String, nullable=False)
     parent_language = Column(String, nullable=False)
 
     user = relationship("User", back_populates="student")
