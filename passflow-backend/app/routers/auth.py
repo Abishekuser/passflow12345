@@ -1,6 +1,5 @@
 import uuid
 import os
-import re
 
 from fastapi import (
     APIRouter,
@@ -57,7 +56,6 @@ async def signup(
 
     parent_name: str = Form(...),
     parent_phone: str = Form(...),
-    parent_email: str = Form(...),
     parent_language: str = Form(...),
 
     photo: UploadFile = File(...),
@@ -86,15 +84,6 @@ async def signup(
         raise HTTPException(
             status_code=400,
             detail="Roll number already exists"
-        )
-
-
-    # Check parent email
-    parent_email = parent_email.strip()
-    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", parent_email):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid parent email format"
         )
 
 
@@ -168,7 +157,8 @@ async def signup(
 
         parent_name=parent_name,
         parent_phone=parent_phone,
-        parent_email=parent_email,
+        # Preserve compatibility with the existing non-null database column.
+        parent_email="",
         parent_language=parent_language
     )
 

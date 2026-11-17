@@ -11,8 +11,6 @@ import {
   Loader2,
   CheckCircle2,
   ExternalLink,
-  Copy,
-  Check,
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
@@ -83,22 +81,13 @@ export function RequestOutpass() {
     }
   };
 
-  const handleCopyApprovalUrl = () => {
-    if (!submissionSuccess?.parent_token) return;
-    const approvalUrl = `${window.location.origin}/parent/approve/${submissionSuccess.parent_token}`;
-    navigator.clipboard.writeText(approvalUrl);
-    setCopiedLink(true);
-    showSuccess('Parent approval URL copied to clipboard!');
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
   return (
     <div className="main-content" style={{ maxWidth: '800px' }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">Apply for Outpass</h1>
           <p className="page-subtitle">
-            Fill out your departure details. Your parent will receive an email approval link.
+            Fill out your departure details. Your parent will receive a Telegram approval request.
           </p>
         </div>
 
@@ -138,10 +127,10 @@ export function RequestOutpass() {
             }}
           >
             <div className="flex items-center justify-center gap-2 mb-1" style={{ color: '#60A5FA', fontWeight: 700, fontSize: '0.95rem' }}>
-              <Clock size={16} /> Waiting for parent approval by email
+              <Clock size={16} /> Waiting for parent approval on Telegram
             </div>
             <p className="text-xs text-secondary mt-1">
-              The email provider accepted the secure approval email for delivery to your parent. Once they approve it, the request moves to the warden approval step and the QR is unlocked after approval.
+              The configured parent Telegram chat receives the approval request. Once your parent approves it, the request moves to the warden approval step and the QR is unlocked after approval.
             </p>
           </div>
 
@@ -304,7 +293,7 @@ export function RequestOutpass() {
               <div className="font-bold text-primary mb-1">How it works:</div>
               <ol style={{ paddingLeft: '1.25rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 <li>Submit your destination and times.</li>
-                <li>Your parent receives a secure approval email with a direct approval link.</li>
+                <li>Your parent receives an approval request through the PassFlow Telegram bot.</li>
                 <li>After parent and warden approval, the QR gate pass unlocks.</li>
                 <li>Present the QR code at the main hostel gate when leaving and returning.</li>
               </ol>

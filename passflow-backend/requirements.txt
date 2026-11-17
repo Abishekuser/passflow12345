@@ -14,4 +14,3 @@ tzdata
 requests
 python-telegram-bot
 supabase
-resend 

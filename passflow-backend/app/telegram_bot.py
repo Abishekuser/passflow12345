@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 import requests
 
@@ -17,16 +19,14 @@ from telegram.error import BadRequest
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 ALGORITHM = "HS256"
 
-BACKEND_URL = os.getenv(
-    "PASSFLOW_BACKEND_URL",
-    "http://127.0.0.1:8000"
-)
+BACKEND_URL = os.getenv("PASSFLOW_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 
 
 def create_parent_token(outpass_id):
@@ -49,11 +49,7 @@ async def start(
 
     chat_id = update.effective_chat.id
 
-    print()
-    print("====================================")
-    print("TELEGRAM PARENT CHAT ID:", chat_id)
-    print("====================================")
-    print()
+    logger.info("Telegram parent bot connected for chat_id=%s", chat_id)
 
     await update.message.reply_text(
         "✅ PassFlow Parent Bot Connected!\n\n"
@@ -82,17 +78,18 @@ async def handle_button(
 
             if "message is not modified" not in str(error).lower():
 
-                print(
-                    "Telegram message update error:",
-                    str(error)
+                logger.warning(
+                    "Could not update Telegram approval message: %s",
+                    error,
                 )
 
     # Read button action
     action, outpass_id = query.data.split(":", 1)
 
-    print(
-        f"Parent selected {action} "
-        f"for outpass {outpass_id}"
+    logger.info(
+        "Parent selected %s for outpass_id=%s",
+        action,
+        outpass_id,
     )
 
     # Validate outpass ID
@@ -139,14 +136,13 @@ async def handle_button(
     # Call backend
     try:
 
-        response = requests.post(
+        response = await asyncio.to_thread(
+            requests.post,
             endpoint,
-            timeout=60
+            timeout=60,
         )
 
         if response.status_code == 200:
-
-            data = response.json()
 
             # --------------------------------
             # PARENT APPROVED
@@ -162,9 +158,9 @@ async def handle_button(
                     "after the warden approves it."
                 )
 
-                print(
-                    "Parent approved outpass:",
-                    data
+                logger.info(
+                    "Parent approved outpass_id=%s",
+                    outpass_id,
                 )
 
             # --------------------------------
@@ -178,9 +174,9 @@ async def handle_button(
                     "The outpass request has been rejected."
                 )
 
-                print(
-                    "Parent rejected outpass:",
-                    data
+                logger.info(
+                    "Parent rejected outpass_id=%s",
+                    outpass_id,
                 )
 
         else:
@@ -202,28 +198,30 @@ async def handle_button(
                 f"⚠️ Request failed:\n{detail}"
             )
 
-            print(
-                "Backend error:",
+            logger.error(
+                "Parent approval request failed for outpass_id=%s "
+                "status_code=%s detail=%s",
+                outpass_id,
                 response.status_code,
-                detail
+                detail,
             )
 
-    except requests.RequestException as e:
-
-        print(
-            "Backend connection error:",
-            str(e)
+    except requests.RequestException as error:
+        logger.error(
+            "PassFlow backend connection failed for outpass_id=%s error_type=%s",
+            outpass_id,
+            type(error).__name__,
         )
 
         await edit_message(
             "⚠️ Could not connect to PassFlow server."
         )
 
-    except Exception as e:
-
-        print(
-            "Telegram approval error:",
-            str(e)
+    except Exception as error:
+        logger.error(
+            "Telegram approval callback failed for outpass_id=%s error_type=%s",
+            outpass_id,
+            type(error).__name__,
         )
 
         await edit_message(
@@ -232,28 +230,41 @@ async def handle_button(
         )
 
 
-# Create Telegram application
-app = Application.builder().token(TOKEN).build()
+def create_bot_application():
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(handle_button))
+    return application
 
 
-# /start
-app.add_handler(
-    CommandHandler("start", start)
-)
+async def start_bot():
+    application = create_bot_application()
+    initialized = False
+    started = False
+    try:
+        await application.initialize()
+        initialized = True
+        await application.start()
+        started = True
+        if application.updater is None:
+            raise RuntimeError("Telegram polling updater is not configured")
+        await application.updater.start_polling(drop_pending_updates=True)
+    except Exception:
+        if application.updater and application.updater.running:
+            await application.updater.stop()
+        if started and application.running:
+            await application.stop()
+        if initialized:
+            await application.shutdown()
+        raise
+
+    logger.info("PassFlow Telegram bot polling started")
+    return application
 
 
-# Approve / Reject buttons
-app.add_handler(
-    CallbackQueryHandler(handle_button)
-)
-
-
-print(
-    "PassFlow Telegram Bot is running..."
-)
-
-
-# Start bot
-app.run_polling(
-    drop_pending_updates=True
-)
+async def stop_bot(application):
+    if application.updater and application.updater.running:
+        await application.updater.stop()
+    if application.running:
+        await application.stop()
+    await application.shutdown()

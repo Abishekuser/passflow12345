@@ -125,7 +125,7 @@ export function StudentDashboard() {
               {activePass.status === 'PENDING' && (
                 <div className="alert alert-warning mt-4 mb-0" style={{ fontSize: '0.85rem' }}>
                   <div>
-                    <strong>Pending Parent Approval:</strong> Waiting for your parent to approve the request via the secure email link sent to them.
+                    <strong>Pending Parent Approval:</strong> Waiting for your parent to approve the request through the PassFlow Telegram bot.
                   </div>
                 </div>
               )}
@@ -192,7 +192,7 @@ export function StudentDashboard() {
               <AlertCircle size={18} style={{ flexShrink: 0 }} />
               <div>
                 <strong>Outpass Rejected:</strong> Your parent rejected your outpass request for{' '}
-                <strong>{outpasses[0].destination}</strong> ({outpasses[0].date}) during the email approval step.
+                <strong>{outpasses[0].destination}</strong> ({outpasses[0].date}) during the Telegram approval step.
               </div>
             </div>
           )}

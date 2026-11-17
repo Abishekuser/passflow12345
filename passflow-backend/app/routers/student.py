@@ -1,23 +1,20 @@
 from datetime import datetime, timedelta
-import logging
-import os
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from jose import jwt
+import os
 from dotenv import load_dotenv
 
 from ..database import get_db
 from ..models import Student, Outpass, User, QRPass
 from ..schemas import OutpassRequest
 from ..auth import get_current_user
-from ..services.email import send_outpass_request
+from ..services.telegram import send_outpass_request
 
 
 load_dotenv()
-
-logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -46,18 +43,6 @@ def create_outpass(
             status_code=404,
             detail="Student profile not found"
         )
-
-    # Check parent email
-    if not student.parent_email:
-        raise HTTPException(
-            status_code=400,
-            detail="Parent email is not registered"
-        )
-    logger.info(
-        "Parent email retrieved for outpass request student_id=%s recipient_domain=%s",
-        student.id,
-        student.parent_email.rpartition("@")[2] or "invalid-email",
-    )
 
     # Check for an active outpass
     active_outpass = db.query(Outpass).filter(
@@ -105,12 +90,6 @@ def create_outpass(
     db.add(outpass)
     db.commit()
     db.refresh(outpass)
-    logger.info(
-        "Outpass created outpass_id=%s student_id=%s status=%s",
-        outpass.id,
-        student.id,
-        outpass.status,
-    )
 
     # Create parent approval token
     parent_token = jwt.encode(
@@ -123,34 +102,39 @@ def create_outpass(
         algorithm=ALGORITHM
     )
 
-    # Send email to the registered parent email
+    # Send Telegram notification
     try:
-        send_outpass_request(
-            parent_email=student.parent_email,
-            student=student,
-            outpass=outpass,
-            approval_token=parent_token
+
+        print("Sending Telegram outpass request...")
+
+        telegram_message_id = send_outpass_request(
+            student,
+            outpass
         )
 
-    except Exception:
-        logger.error(
-            "Outpass notification failed after save outpass_id=%s",
-            outpass.id,
+        print(
+            "Telegram message sent. Message ID:",
+            telegram_message_id
+        )
+
+    except Exception as e:
+
+        print(
+            "Telegram notification failed:",
+            str(e)
         )
 
         raise HTTPException(
-            status_code=502,
-            detail=(
-                f"Outpass request {outpass.id} was saved, but the parent approval "
-                "email could not be sent. Do not submit it again; contact support."
-            ),
+            status_code=500,
+            detail=f"Telegram notification failed: {str(e)}"
         )
 
     return {
-        "message": "Outpass request submitted; email provider accepted the notification",
+        "message": "Outpass request submitted",
         "outpass_id": outpass.id,
         "status": outpass.status,
-        "parent_email": student.parent_email
+        "parent_token": parent_token,
+        "telegram_message_id": telegram_message_id
     }
 
 

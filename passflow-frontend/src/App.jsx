@@ -11,7 +11,6 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { StudentDashboard } from './pages/student/StudentDashboard';
 import { RequestOutpass } from './pages/student/RequestOutpass';
 import { MyOutpasses } from './pages/student/MyOutpasses';
-import { ParentApprovalPage } from './pages/parent/ParentApprovalPage';
 import { SecurityDashboard } from './pages/security/SecurityDashboard';
 import { WardenDashboard } from './pages/warden/WardenDashboard';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -80,13 +79,6 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-
-              {/* Parent Approval Portal */}
-              <Route path="/parent" element={<ParentApprovalPage />} />
-              <Route path="/parent/approve" element={<ParentApprovalPage />} />
-              <Route path="/parent/approve/:token" element={<ParentApprovalPage />} />
-              <Route path="/parent/reject/:token" element={<ParentApprovalPage />} />
-              <Route path="/parent/:token" element={<ParentApprovalPage />} />
 
               {/* Security Gate Portal */}
               <Route

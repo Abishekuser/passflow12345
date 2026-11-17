@@ -9,7 +9,7 @@ import { request } from './apiClient';
 export const authApi = {
   /**
    * Register a new student
-   * @param {FormData} formData (contains username, password, name, roll_number, department, year, room_number, parent_name, parent_phone, parent_email, parent_language, photo)
+   * @param {FormData} formData (contains username, password, name, roll_number, department, year, room_number, parent_name, parent_phone, parent_language, photo)
    */
   signup: async (formData) => {
     return request('/auth/signup', {
