@@ -248,7 +248,7 @@ export function LoginPage() {
               <div className="font-bold flex items-center gap-1" style={{ color: '#F59E0B' }}>
                 <HeartHandshake size={14} /> Parent Approval
               </div>
-              <div className="text-muted text-xs mt-0.5">Approve / Reject via Telegram Bot</div>
+              <div className="text-muted text-xs mt-0.5">Approve / Reject via secure email link</div>
             </div>
           </div>
         </div>

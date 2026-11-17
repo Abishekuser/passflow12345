@@ -28,6 +28,7 @@ export function SignupPage() {
     room_number: '',
     parent_name: '',
     parent_phone: '',
+    parent_email: '',
     parent_language: 'English',
   });
 
@@ -83,6 +84,14 @@ export function SignupPage() {
       setError('Parent details and phone number are required.');
       return;
     }
+    if (!formData.parent_email.trim()) {
+      setError('Parent email is required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parent_email.trim())) {
+      setError('Please enter a valid parent email address.');
+      return;
+    }
     if (!photoFile) {
       setError('Please upload a student profile photo.');
       return;
@@ -101,6 +110,7 @@ export function SignupPage() {
       data.append('room_number', formData.room_number.trim().toUpperCase());
       data.append('parent_name', formData.parent_name.trim());
       data.append('parent_phone', formData.parent_phone.trim());
+      data.append('parent_email', formData.parent_email.trim());
       data.append('parent_language', formData.parent_language);
       data.append('photo', photoFile);
 
@@ -368,7 +378,7 @@ export function SignupPage() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="parent_phone">
-                  Parent Phone Number (for Telegram) <span className="required">*</span>
+                  Parent Phone Number <span className="required">*</span>
                 </label>
                 <input
                   id="parent_phone"
@@ -378,6 +388,31 @@ export function SignupPage() {
                   placeholder="e.g. +919876543210"
                   value={formData.parent_phone}
                   onChange={handleChange}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="parent_email">
+                  Parent Email <span className="required">*</span>
+                </label>
+                <input
+                  id="parent_email"
+                  name="parent_email"
+                  type="email"
+                  className="form-input"
+                  placeholder="e.g. parent@example.com"
+                  value={formData.parent_email}
+                  onChange={handleChange}
+                  onInvalid={(event) => {
+                    event.preventDefault();
+                    setError(
+                      event.currentTarget.validity.valueMissing
+                        ? 'Parent email is required.'
+                        : 'Please enter a valid parent email address.'
+                    );
+                  }}
                   required
                   disabled={loading}
                 />

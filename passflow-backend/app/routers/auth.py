@@ -1,5 +1,6 @@
 import uuid
 import os
+import re
 
 from fastapi import (
     APIRouter,
@@ -89,10 +90,11 @@ async def signup(
 
 
     # Check parent email
-    if "@" not in parent_email:
+    parent_email = parent_email.strip()
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", parent_email):
         raise HTTPException(
             status_code=400,
-            detail="Invalid parent email"
+            detail="Invalid parent email format"
         )
 
 

@@ -125,7 +125,7 @@ export function StudentDashboard() {
               {activePass.status === 'PENDING' && (
                 <div className="alert alert-warning mt-4 mb-0" style={{ fontSize: '0.85rem' }}>
                   <div>
-                    <strong>Pending Parent Approval:</strong> Waiting for approval through Telegram. An authorization request with Approve/Reject buttons has been sent to your parent's Telegram bot.
+                    <strong>Pending Parent Approval:</strong> Waiting for your parent to approve the request via the secure email link sent to them.
                   </div>
                 </div>
               )}
@@ -141,7 +141,7 @@ export function StudentDashboard() {
               {activePass.status === 'APPROVED' && (
                 <div className="alert alert-success mt-4 mb-0" style={{ fontSize: '0.85rem' }}>
                   <div>
-                    <strong>Approved:</strong> Your parent approved the outpass via Telegram. Your digital QR pass is ready below.
+                    <strong>Approved:</strong> Parent and warden approval are complete. Your digital QR pass is ready below.
                   </div>
                 </div>
               )}
@@ -192,7 +192,7 @@ export function StudentDashboard() {
               <AlertCircle size={18} style={{ flexShrink: 0 }} />
               <div>
                 <strong>Outpass Rejected:</strong> Your parent rejected your outpass request for{' '}
-                <strong>{outpasses[0].destination}</strong> ({outpasses[0].date}) via Telegram.
+                <strong>{outpasses[0].destination}</strong> ({outpasses[0].date}) during the email approval step.
               </div>
             </div>
           )}

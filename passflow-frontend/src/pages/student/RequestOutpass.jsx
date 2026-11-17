@@ -98,7 +98,7 @@ export function RequestOutpass() {
         <div>
           <h1 className="page-title">Apply for Outpass</h1>
           <p className="page-subtitle">
-            Fill out your departure details. Your parent will receive an instant approval request.
+            Fill out your departure details. Your parent will receive an email approval link.
           </p>
         </div>
 
@@ -126,7 +126,6 @@ export function RequestOutpass() {
             Your outpass request is currently <strong className="text-primary">PENDING</strong>.
           </p>
 
-          {/* Telegram Status Card */}
           <div
             style={{
               background: 'rgba(59, 130, 246, 0.08)',
@@ -139,10 +138,10 @@ export function RequestOutpass() {
             }}
           >
             <div className="flex items-center justify-center gap-2 mb-1" style={{ color: '#60A5FA', fontWeight: 700, fontSize: '0.95rem' }}>
-              <Clock size={16} /> Waiting for parent approval on Telegram
+              <Clock size={16} /> Waiting for parent approval by email
             </div>
             <p className="text-xs text-secondary mt-1">
-              A Telegram bot notification with Approve/Reject buttons has been sent to your parent. Once approved, your QR pass will automatically appear on your dashboard.
+              A secure email approval link has been sent to your parent. Once they approve it, the request moves to the warden approval step and the QR is unlocked after approval.
             </p>
           </div>
 
@@ -305,8 +304,8 @@ export function RequestOutpass() {
               <div className="font-bold text-primary mb-1">How it works:</div>
               <ol style={{ paddingLeft: '1.25rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 <li>Submit your destination and times.</li>
-                <li>Your parent receives an approval notification on Telegram with Approve / Reject buttons.</li>
-                <li>Once approved, your QR Gate Pass unlocks immediately.</li>
+                <li>Your parent receives a secure approval email with a direct approval link.</li>
+                <li>After parent and warden approval, the QR gate pass unlocks.</li>
                 <li>Present the QR code at the main hostel gate when leaving and returning.</li>
               </ol>
             </div>
