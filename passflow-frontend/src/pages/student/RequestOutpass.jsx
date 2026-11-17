@@ -141,7 +141,7 @@ export function RequestOutpass() {
               <Clock size={16} /> Waiting for parent approval by email
             </div>
             <p className="text-xs text-secondary mt-1">
-              A secure email approval link has been sent to your parent. Once they approve it, the request moves to the warden approval step and the QR is unlocked after approval.
+              The email provider accepted the secure approval email for delivery to your parent. Once they approve it, the request moves to the warden approval step and the QR is unlocked after approval.
             </p>
           </div>
 

@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
+import logging
+import os
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from jose import jwt
-import os
 from dotenv import load_dotenv
 
 from ..database import get_db
@@ -15,6 +16,8 @@ from ..services.email import send_outpass_request
 
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -50,6 +53,11 @@ def create_outpass(
             status_code=400,
             detail="Parent email is not registered"
         )
+    logger.info(
+        "Parent email retrieved for outpass request student_id=%s recipient_domain=%s",
+        student.id,
+        student.parent_email.rpartition("@")[2] or "invalid-email",
+    )
 
     # Check for an active outpass
     active_outpass = db.query(Outpass).filter(
@@ -97,6 +105,12 @@ def create_outpass(
     db.add(outpass)
     db.commit()
     db.refresh(outpass)
+    logger.info(
+        "Outpass created outpass_id=%s student_id=%s status=%s",
+        outpass.id,
+        student.id,
+        outpass.status,
+    )
 
     # Create parent approval token
     parent_token = jwt.encode(
@@ -111,12 +125,6 @@ def create_outpass(
 
     # Send email to the registered parent email
     try:
-
-        print(
-            "Sending email to:",
-            student.parent_email
-        )
-
         send_outpass_request(
             parent_email=student.parent_email,
             student=student,
@@ -124,24 +132,22 @@ def create_outpass(
             approval_token=parent_token
         )
 
-        print(
-            "Parent approval email sent successfully."
-        )
-
-    except Exception as e:
-
-        print(
-            "Email notification failed:",
-            str(e)
+    except Exception:
+        logger.error(
+            "Outpass notification failed after save outpass_id=%s",
+            outpass.id,
         )
 
         raise HTTPException(
-            status_code=500,
-            detail=f"Email notification failed: {str(e)}"
+            status_code=502,
+            detail=(
+                f"Outpass request {outpass.id} was saved, but the parent approval "
+                "email could not be sent. Do not submit it again; contact support."
+            ),
         )
 
     return {
-        "message": "Outpass request submitted",
+        "message": "Outpass request submitted; email provider accepted the notification",
         "outpass_id": outpass.id,
         "status": outpass.status,
         "parent_email": student.parent_email
